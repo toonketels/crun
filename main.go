@@ -6,16 +6,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"time"
 )
 
 const (
-	STOP          = "stop"
 	START         = "start"
 	SOURCECHANGED = "sourcechanged"
-	TERMINATE     = "terminate"
 
 	DIR_TO_WATCH = "."
+	BIN          = "./CRUN_BIN.tmp"
 )
 
 func main() {
@@ -47,7 +45,7 @@ func main() {
 		watch(msgBus)
 		msgBus <- START
 
-		waitUntilInstructedToKill(msgBus)
+		waitToTerminate()
 	}
 }
 
@@ -55,7 +53,6 @@ func createDispatcher(msgBus chan string) {
 
 	compile := createCompileTask()
 	run := createRunTask()
-	removeBin := createRemoveBinTask()
 
 	for {
 		msg := <-msgBus
@@ -76,26 +73,11 @@ func createDispatcher(msgBus chan string) {
 				run.Kill()
 			}
 			run.Start()
-
-		case STOP:
-			log.Println("dispatcher stop")
-
-			if compile.IsRunning {
-				compile.Kill()
-			}
-			if run.IsRunning {
-				run.Kill()
-			}
-			removeBin.Start()
-			removeBin.Wait()
-
-		case TERMINATE:
-			log.Println("dispatcher terminate")
 		}
 	}
 }
 
-func waitUntilInstructedToKill(msgBus chan string) {
+func waitToTerminate() {
 	// / Set up channel on which to send signal notifications.
 	// We must use a buffered channel or risk missing the signal
 	// if we're not ready to receive when the signal is sent.
@@ -103,14 +85,8 @@ func waitUntilInstructedToKill(msgBus chan string) {
 	signal.Notify(c, os.Interrupt, os.Kill)
 
 	// Block for signals to receive
-	for sig := range c {
-		log.Println("Got signal:", sig)
-		msgBus <- STOP
-
-		// After 5 sec interrupt will just stop the program
-		time.AfterFunc(1*time.Second, func() {
-			signal.Stop(c)
-			return
-		})
-	}
+	_ = <-c
+	fmt.Println("")
+	log.Println("CRUN EXITING")
+	_ = os.Remove(BIN)
 }

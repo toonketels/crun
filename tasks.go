@@ -72,24 +72,10 @@ func createRunTask() (task *Task) {
 	return
 }
 
-func createRemoveBinTask() (task *Task) {
-	task = new(Task)
-	task.Name = "REMOVE BIN"
-	task.IsRunning = false
-	task.do = task.removeBin
-
-	return
-}
-
-func (task *Task) removeBin() {
-
-	_ = os.Remove("./CRUN_BIN.tmp")
-}
-
 func (task *Task) run() {
 
 	// Build command the execute.
-	cmd := exec.Command("./CRUN_BIN.tmp", flag.Args()...)
+	cmd := exec.Command(BIN, flag.Args()...)
 
 	// Create a pipe from cmd stdarr
 	stderr, err := cmd.StderrPipe()
