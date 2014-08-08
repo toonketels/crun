@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io"
 	"io/ioutil"
 	"log"
@@ -88,7 +89,7 @@ func (task *Task) removeBin() {
 func (task *Task) run() {
 
 	// Build command the execute.
-	cmd := exec.Command("./CRUN_BIN.tmp")
+	cmd := exec.Command("./CRUN_BIN.tmp", flag.Args()...)
 
 	// Create a pipe from cmd stdarr
 	stderr, err := cmd.StderrPipe()

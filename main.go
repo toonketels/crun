@@ -37,12 +37,9 @@ func main() {
 		fmt.Println("crun server.go                   compiles the source in the current")
 		fmt.Println("                                 dir and executes the binary")
 
-		fmt.Println("crun server.go --port=:3000      additional arguments are passed to")
-		fmt.Println("                                 the run command")
+		fmt.Println("crun server.go -- --port=:3000   arguments after `--` are passed to the binary")
 		fmt.Println("")
 	} else {
-
-		log.Println(flag.Args())
 
 		msgBus := make(chan string)
 		go createDispatcher(msgBus)

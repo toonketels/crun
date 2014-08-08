@@ -15,5 +15,5 @@ Usage
     // compiles the source in the current dir and executes the binary
     crun
 
-    // additional arguments are passed to the binary
-	crun server.go --port=:3000
+    // additional arguments after `--` are passed to the binary
+	crun -- --port=:3000
