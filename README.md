@@ -1,6 +1,9 @@
 crun - continuously Compile and Run
 ===================================
 
+Status __Under development__
+
+
 
 The `crun` command compiles and runs your code and watches all .go files in the current directory,
 recompiling and rerunning your code when the files change.
