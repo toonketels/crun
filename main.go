@@ -14,6 +14,8 @@ const (
 	START         = "start"
 	SOURCECHANGED = "sourcechanged"
 	TERMINATE     = "terminate"
+
+	DIR_TO_WATCH = "."
 )
 
 func main() {
