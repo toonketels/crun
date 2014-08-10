@@ -11,9 +11,8 @@ import (
 
 type Task struct {
 	Name      string
-	cmd       *exec.Cmd
+	cmd       func() *exec.Cmd
 	done      chan bool
-	do        func()
 	IsRunning bool
 	proc      *os.Process
 }
@@ -25,12 +24,55 @@ func (task *Task) Wait() {
 
 func (task *Task) Start() *Task {
 	task.done = make(chan bool, 1)
+
 	go func() {
 		task.IsRunning = true
+
 		log.Println("TASK", task.Name, ": started")
-		task.do()
+
+		cmd := task.cmd()
+
+		// Create a pipe from cmd stdarr
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			log.Fatal("STDERR", err)
+		}
+
+		// Create a pipe from cmd stdout
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			log.Fatal("STDOUT", err)
+		}
+
+		// Start the cmd
+		err = cmd.Start()
+		if err != nil {
+			log.Fatal("ERR", err)
+		}
+		task.proc = cmd.Process
+
+		// Pipe the cmd stdout into our program's stdout,
+		// making it visible to us
+		io.Copy(os.Stdout, stdout)
+
+		// Read all reported erros from the cmd
+		errBuf, _ := ioutil.ReadAll(stderr)
+
+		// Wait for the cmd to done
+		_ = cmd.Wait()
+
+		// If we had some errors...
+		// We don't check cmd.Wait errors because it will always output
+		// an error when we kill the process
+		if len(errBuf) != 0 {
+			// Dump all its stdout output
+			log.Println("ERRBUF", string(errBuf))
+		}
+
 		task.IsRunning = false
+
 		task.done <- true
+
 		log.Println("TASK", task.Name, ": finished")
 
 	}()
@@ -51,13 +93,12 @@ func (task *Task) Kill() *Task {
 	return task
 }
 
-// Compile creates and returns a compile task
 func createCompileTask() (task *Task) {
 
 	task = new(Task)
 	task.Name = "COMPILE"
 	task.IsRunning = false
-	task.do = task.compile
+	task.cmd = func() *exec.Cmd { return exec.Command("go", "build", "-o", "CRUN_BIN.tmp", ".") }
 
 	return
 }
@@ -67,91 +108,7 @@ func createRunTask() (task *Task) {
 	task = new(Task)
 	task.Name = "RUN"
 	task.IsRunning = false
-	task.do = task.run
+	task.cmd = func() *exec.Cmd { return exec.Command(BIN, flag.Args()...) }
 
 	return
-}
-
-func (task *Task) run() {
-
-	// Build command the execute.
-	cmd := exec.Command(BIN, flag.Args()...)
-
-	// Create a pipe from cmd stdarr
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Fatal("STDERR", err)
-	}
-
-	// Create a pipe from cmd stdout
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal("STDOUT", err)
-	}
-
-	// Start the cmd
-	err = cmd.Start()
-	if err != nil {
-		log.Fatal("ERR", err)
-	}
-	task.proc = cmd.Process
-
-	// Pipe the cmd stdout into our program's stdout,
-	// making it visible to us
-	io.Copy(os.Stdout, stdout)
-
-	// Read all reported erros from the cmd
-	errBuf, _ := ioutil.ReadAll(stderr)
-
-	// Wait for the cmd to done
-	_ = cmd.Wait()
-
-	// If we had some errors...
-	// We don't check cmd.Wait errors because it will always output
-	// an error when we kill the process
-	if len(errBuf) != 0 {
-		// Dump all its stdout output
-		log.Println("ERRBUF", string(errBuf))
-	}
-}
-
-func (task *Task) compile() {
-	// Build command the execute.
-	cmd := exec.Command("go", "build", "-o", "CRUN_BIN.tmp", ".")
-
-	// Create a pipe from cmd stdarr
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Fatal("STDERR", err)
-	}
-
-	// Create a pipe from cmd stdout
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal("STDOUT", err)
-	}
-
-	// Start the cmd
-	err = cmd.Start()
-	if err != nil {
-		log.Fatal("ERR", err)
-	}
-	task.proc = cmd.Process
-
-	// Pipe the cmd stdout into our program's stdout,
-	// making it visible to us
-	io.Copy(os.Stdout, stdout)
-
-	// Read all reported erros from the cmd
-	errBuf, _ := ioutil.ReadAll(stderr)
-
-	// Wait for the cmd to done
-	err = cmd.Wait()
-
-	// We don't check cmd.Wait errors because it will always output
-	// an error when we kill the process
-	if len(errBuf) != 0 {
-		// Dump all its stdout output
-		log.Fatal("ERRBUF", string(errBuf))
-	}
 }
