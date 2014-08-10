@@ -28,26 +28,26 @@ func (task *Task) Start() *Task {
 	go func() {
 		task.IsRunning = true
 
-		log.Println("TASK", task.Name, ": started")
+		task.Println("started")
 
 		cmd := task.cmd()
 
 		// Create a pipe from cmd stdarr
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
-			log.Fatal("STDERR", err)
+			task.Fatal(err)
 		}
 
 		// Create a pipe from cmd stdout
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
-			log.Fatal("STDOUT", err)
+			task.Fatal(err)
 		}
 
 		// Start the cmd
 		err = cmd.Start()
 		if err != nil {
-			log.Fatal("ERR", err)
+			task.Fatal(err)
 		}
 		task.proc = cmd.Process
 
@@ -66,14 +66,14 @@ func (task *Task) Start() *Task {
 		// an error when we kill the process
 		if len(errBuf) != 0 {
 			// Dump all its stdout output
-			log.Println("ERRBUF", string(errBuf))
+			task.Println(string(errBuf))
 		}
 
 		task.IsRunning = false
 
 		task.done <- true
 
-		log.Println("TASK", task.Name, ": finished")
+		task.Println("finished")
 
 	}()
 	return task
@@ -82,15 +82,23 @@ func (task *Task) Start() *Task {
 func (task *Task) Kill() *Task {
 
 	if err := task.proc.Kill(); err != nil {
-		log.Println("Killing process erring", err)
+		task.Println(err)
 	}
 	_, err := task.proc.Wait()
 	if err != nil {
-		log.Println("Wait process erring")
+		task.Println(err)
 	}
 	task.proc = nil
 	task.Wait()
 	return task
+}
+
+func (task *Task) Println(v interface{}) {
+	log.Println("TASK", task.Name, ":", v)
+}
+
+func (task *Task) Fatal(v interface{}) {
+	log.Fatal("TASK", task.Name, ":", v)
 }
 
 func createCompileTask() (task *Task) {
