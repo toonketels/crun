@@ -12,7 +12,7 @@ import (
 
 // Watch watches in the current directory for file changes
 // and notifies the command dispatcher.
-func watch(msgBus chan string) {
+func watch(dispatchChan chan string) {
 
 	// Start a file system watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -21,7 +21,7 @@ func watch(msgBus chan string) {
 	}
 
 	signalSourceChanged := debounce(800*time.Millisecond, func() {
-		msgBus <- SOURCECHANGED
+		dispatchChan <- SOURCECHANGED
 	})
 
 	// Start waiting for file system messages to receive...

@@ -39,42 +39,44 @@ func main() {
 		fmt.Println("")
 	} else {
 
-		msgBus := make(chan string)
-		go createDispatcher(msgBus)
-
-		watch(msgBus)
-		msgBus <- START
+		dispatchChan := createDispatcher()
+		watch(dispatchChan)
+		dispatchChan <- START
 
 		waitToTerminate()
 	}
 }
 
-func createDispatcher(msgBus chan string) {
+func createDispatcher() (dispatchChan chan string) {
 
-	compile := createCompileTask()
-	run := createRunTask()
+	dispatchChan = make(chan string)
 
-	for {
-		msg := <-msgBus
-		switch msg {
-		case START:
-			log.Println("dispatcher start")
+	go func() {
+		compile := createCompileTask()
+		run := createRunTask()
 
-			compile.Start()
-			compile.Wait()
-			run.Start()
+		for {
+			msg := <-dispatchChan
+			switch msg {
+			case START:
 
-		case SOURCECHANGED:
-			log.Println("dispatcher sourceChanged")
+				compile.Start()
+				compile.Wait()
+				run.Start()
 
-			compile.Start()
-			compile.Wait()
-			if run.IsRunning {
-				run.Kill()
+			case SOURCECHANGED:
+
+				compile.Start()
+				compile.Wait()
+				if run.IsRunning {
+					run.Kill()
+				}
+				run.Start()
 			}
-			run.Start()
 		}
-	}
+	}()
+
+	return
 }
 
 func waitToTerminate() {
