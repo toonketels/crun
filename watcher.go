@@ -1,10 +1,10 @@
 package main
 
 import (
-	"Path"
 	"code.google.com/p/go.exp/fsnotify"
 	"io/ioutil"
 	"log"
+	"path"
 	"regexp"
 	"strings"
 	"time"
